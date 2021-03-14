@@ -40,12 +40,12 @@ namespace MPQToTACT
             // load Id-Name map
             foreach (var file in File.ReadAllLines(ListFilePath))
             {
-                int commaIndex = file.IndexOf(',');
+                int commaIndex = file.IndexOf(';');
                 if (commaIndex == -1)
                     continue;
 
                 id = uint.Parse(file.Substring(0, commaIndex));
-                name = file.Substring(commaIndex + 1);
+                name = file[(commaIndex + 1)..];
 
                 // unique-ify unnamed
                 if (name == "")
@@ -67,15 +67,9 @@ namespace MPQToTACT
         {
             Log.WriteLine("Exporting Listfiles");
 
-            using (var txt = new StreamWriter("listfile.txt"))
-            using (var csv = new StreamWriter(ListFilePath))
-            {
-                foreach (var lookup in _fileLookup.OrderBy(x => x.Value))
-                {
-                    csv.WriteLine(lookup.Value + "," + lookup.Key);
-                    txt.WriteLine(lookup.Key);
-                }
-            }
+            using var csv = new StreamWriter(ListFilePath);
+            foreach (var lookup in _fileLookup.OrderBy(x => x.Value))
+                csv.WriteLine(lookup.Value + ";" + lookup.Key);
         }
 
         public uint GetOrCreateFileId(string filename)

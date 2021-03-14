@@ -19,7 +19,7 @@ namespace MPQToTACT.Helpers
                 return archive2.IsAlpha ? 1 : -1;
 
             if (archive1.Name.Length == 0 || archive2.Name.Length == 0)
-                return archive1.Name.Length == archive2.Name.Length ? 0 : archive1.Name.Length < archive2.Name.Length ? 1 : -1;
+                return -archive1.Name.Length.CompareTo(archive2.Name.Length);
 
             if (archive1.IsLocale != archive2.IsLocale)
                 return archive2.IsLocale ? -1 : 1;
@@ -61,7 +61,7 @@ namespace MPQToTACT.Helpers
             return -string.Compare(archive1.PatchNum, archive2.PatchNum, StringComparison.OrdinalIgnoreCase);
         }
 
-        private class MPQInfo
+        private struct MPQInfo
         {
             public string Name;
             public bool IsAlpha;
@@ -79,7 +79,7 @@ namespace MPQToTACT.Helpers
                 IsLocale = Name.Contains("locale") || Name.Contains("speech") || Name.Contains("base");
                 IsPatch = Name.Contains("patch");
                 PatchIndex = Name.IndexOf("patch", StringComparison.Ordinal);
-                PatchNum = Name.Substring(PatchIndex + 6);
+                PatchNum = Name[(PatchIndex + 6)..];
                 ExtIndex = Name.LastIndexOf('.');
             }
         }

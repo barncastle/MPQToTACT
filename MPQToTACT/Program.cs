@@ -6,18 +6,22 @@ using MPQToTACT.Readers;
 using TACT.Net;
 using TACT.Net.Install;
 using TACT.Net.Root;
+using TACT.Net.Tags;
 
 namespace MPQToTACT
 {
     class Program
     {
-        public const string WoWDirectory = @"E:\World of Warcraft 0.5.3";
-        public const string BuildName = "WOW-3368patch0.5.3_Alpha_Retail";
-        public const string OutputFolder = @"C:\wamp64\www";
+        public const string WoWDirectory = @"E:\World of Warcraft 0.5.5";
+        public const string BuildName = "WOW-3494patch0.5.5_alpha";
+        public const string OutputFolder = @"D:\TACT\UwAmp\www";
+        public const string TempFolder = "temp";
 
-        static void Main(string[] args)
+        static void Main()
         {
-            Clean(OutputFolder);
+            Clean();
+
+            EncodingCache.Initialise();
 
             // create the repo
             var tactRepo = CreateRepo(BuildName);
@@ -29,16 +33,17 @@ namespace MPQToTACT
             var mpqReader = new MPQReader(dirReader.PatchArchives, tactRepo);
 
             // populate the Install and Root files
-            // TACT.Net will handle the population of/references to the other system files
             PopulateInstallFile(tactRepo, dirReader, mpqReader);
             PopulateRootFile(tactRepo, dirReader, mpqReader);
 
             // build and save the repo
             Log.WriteLine("Building and Saving repo");
-            tactRepo.Save(OutputFolder);
+            tactRepo.Save(OutputFolder, Path.Combine(OutputFolder, BuildName));
+
+            EncodingCache.Save();
 
             // cleanup
-            DeleteDirectory("temp");
+            Clean();
         }
 
         #region Methods
@@ -63,7 +68,7 @@ namespace MPQToTACT
 
             // calculate the build uid
             string buildUID = "wow";
-            switch(branch.ToLower())
+            switch (branch.ToLower())
             {
                 case "ptr":
                     buildUID = "wowt";
@@ -82,18 +87,28 @@ namespace MPQToTACT
 
             // update the configs with the build and server info
             // - CDNs file is probably not necessary for this use case
-            tactrepo.ConfigContainer.VersionsFile.SetValue("BuildId", buildId);
-            tactrepo.ConfigContainer.VersionsFile.SetValue("VersionsName", versionName);
+            tactrepo.ManifestContainer.VersionsFile.SetValue("BuildId", buildId);
+            tactrepo.ManifestContainer.VersionsFile.SetValue("VersionsName", versionName);
             tactrepo.ConfigContainer.BuildConfig.SetValue("Build-Name", buildName, 0);
             tactrepo.ConfigContainer.BuildConfig.SetValue("Build-UID", buildUID, 0);
             tactrepo.ConfigContainer.BuildConfig.SetValue("Build-Product", "WoW", 0);
-            tactrepo.ConfigContainer.CDNsFile.SetValue("Hosts", "localhost");
-            tactrepo.ConfigContainer.CDNsFile.SetValue("Servers", "http://127.0.0.1");
+            tactrepo.ManifestContainer.CDNsFile.SetValue("Hosts", "localhost");
+            tactrepo.ManifestContainer.CDNsFile.SetValue("Servers", "http://127.0.0.1");
+            tactrepo.ManifestContainer.CDNsFile.SetValue("Path", "");
+
+            // load and append existing indices
+            tactrepo.IndexContainer.Open(OutputFolder);
+            foreach (var index in Directory.GetFiles(OutputFolder, "*.index", SearchOption.AllDirectories))
+            {
+                tactrepo.ConfigContainer.CDNConfig.AddValue("archives", Path.GetFileNameWithoutExtension(index));
+                tactrepo.ConfigContainer.CDNConfig.AddValue("archives-index-size", new FileInfo(index).Length.ToString());
+            }            
 
             // set root variables
             tactrepo.RootFile.LocaleFlags = LocaleFlags.enUS;
             tactrepo.RootFile.ContentFlags = ContentFlags.None;
             tactrepo.RootFile.FileLookup = new ListFileLookup();
+            tactrepo.RootFile.AddBlock(LocaleFlags.All_WoW, ContentFlags.None);
 
             return tactrepo;
         }
@@ -111,7 +126,13 @@ namespace MPQToTACT
             else
             {
                 mpqReader.EnumerateDataArchives(dirReader.BaseArchives, true);
-                mpqReader.Process<InstallFile>((x) => repo.InstallFile.AddOrUpdate(x, repo));
+                mpqReader.Process<InstallFile>((x) =>
+                {
+                    repo.InstallFile.AddOrUpdate(x);
+                    repo.EncodingFile.AddOrUpdate(x);
+                    repo.IndexContainer.Enqueue(x);
+                    repo.DownloadFile.AddOrUpdate(x);
+                });
             }
         }
 
@@ -123,10 +144,16 @@ namespace MPQToTACT
             mpqReader.FileList.Clear();
             mpqReader.EnumerateDataArchives(dirReader.DataArchives);
             mpqReader.EnumeratePatchArchives();
-            mpqReader.EnumerateLooseDataFiles(dirReader.GetLooseDataFiles());
+            //mpqReader.EnumerateLooseDataFiles(dirReader.GetLooseDataFiles());
 
             Log.WriteLine("Populating Root file");
-            mpqReader.Process<RootFile>((x) => repo.RootFile.AddOrUpdate(x, repo));
+            mpqReader.Process<RootFile>((x) =>
+            {
+                repo.RootFile.AddOrUpdate(x);
+                repo.EncodingFile.AddOrUpdate(x);
+                repo.IndexContainer.Enqueue(x);
+                repo.DownloadFile.AddOrUpdate(x);
+            });
         }
 
         #endregion
@@ -137,13 +164,10 @@ namespace MPQToTACT
         /// Deleted all files from the temp and output directories
         /// </summary>
         /// <param name="output"></param>
-        private static void Clean(string output)
+        private static void Clean()
         {
-            DeleteDirectory(Path.Combine(output, "wow"));
-            DeleteDirectory(Path.Combine(output, "tpr"));
-            DeleteDirectory("temp");
-
-            Directory.CreateDirectory("temp");
+            DeleteDirectory(Program.TempFolder);
+            Directory.CreateDirectory(Program.TempFolder);
         }
 
         private static void DeleteDirectory(string path)

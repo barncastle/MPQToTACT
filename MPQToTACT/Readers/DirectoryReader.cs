@@ -22,7 +22,7 @@ namespace MPQToTACT.Readers
         private const StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
 
         // excluded directories and file extensions
-        private readonly string[] _excludeddirs = new[] { "screenshots", "logs", "errors", "wdb", "cache", "logs.client", "data", "mapfiles" };
+        private readonly string[] _excludeddirs = new[] { "screenshots", "logs", "errors", "wdb", "cache", "logs.client", "mapfiles" };
         private readonly string[] _excludedexts = new[] { ".h", ".idb", ".i64", ".lnk", ".ses", ".log", ".pdb", ".wtf" };
 
         public DirectoryReader(string directory, TACTRepo tactrepo)
@@ -63,12 +63,18 @@ namespace MPQToTACT.Readers
             var block = new ActionBlock<string>(file =>
             {
                 // strip the local path and normalise
-                string name = file.Substring(file.IndexOf(BaseDirectory, _comparison) + BaseDirectory.Length).WoWNormalise();
+                var name = file[(file.IndexOf(BaseDirectory, _comparison) + BaseDirectory.Length)..].WoWNormalise();
 
                 // block table encode and export to the temp folder
                 // then add appropiate tags
-                var record = BlockTableEncoder.EncodeAndExport(file, "temp", name);
+                var record = BlockTableEncoder.EncodeAndExport(file, Program.TempFolder, name);
                 record.Tags = TagGenerator.GetTags(file);
+
+                if (!EncodingCache.ContainsEKey(record.EKey))
+                    EncodingCache.AddOrUpdate(record);
+                else
+                    record.BLTEPath = "";
+
                 results.Add(record);
             },
             new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism });
@@ -112,8 +118,9 @@ namespace MPQToTACT.Readers
             {
                 string filename = Path.GetFileName(file);
 
-                // skip installation tomes
-                if (filename.Contains("tome", _comparison))
+                // skip installation tomes and backups
+                if (filename.Contains("tome", _comparison) || 
+                    filename.Contains("backup", _comparison))
                     continue;
 
                 // filter into the right collection

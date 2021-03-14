@@ -100,7 +100,7 @@ namespace MPQToTACT.MPQ
             uint read;
             fixed (byte* pb = &buffer[offset])
             {
-                NativeOverlapped overlapped = default(NativeOverlapped);
+                NativeOverlapped overlapped = default;
                 success = NativeMethods.SFileReadFile(_handle, new IntPtr(pb), unchecked((uint)count), out read, ref overlapped);
             }
 
