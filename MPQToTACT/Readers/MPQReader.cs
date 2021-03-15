@@ -30,7 +30,7 @@ namespace MPQToTACT.Readers
         public MPQReader(IEnumerable<string> patchArchives, TACTRepo tactrepo)
         {
             TACTRepo = tactrepo;
-            FileList = new ConcurrentDictionary<string, CASRecord>();
+            FileList = new ConcurrentDictionary<string, CASRecord>(StringComparer.OrdinalIgnoreCase);
 
             _patchArchives = new Queue<string>(patchArchives);
             _dataDirectory = Path.DirectorySeparatorChar + "DATA" + Path.DirectorySeparatorChar;
