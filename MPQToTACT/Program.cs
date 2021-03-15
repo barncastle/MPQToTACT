@@ -12,7 +12,7 @@ namespace MPQToTACT
 {
     class Program
     {
-        public const string WoWDirectory = @"E:\World of Warcraft 0.5.5";
+        public const string WoWDirectory = @"E:\Clients\World of Warcraft 0.5.5.3494 Alpha";
         public const string BuildName = "WOW-3494patch0.5.5_alpha";
         public const string OutputFolder = @"D:\TACT\UwAmp\www";
         public const string TempFolder = "temp";
@@ -82,7 +82,7 @@ namespace MPQToTACT
             }
 
             // open a new tact instance
-            TACTRepo tactrepo = new TACTRepo();
+            TACTRepo tactrepo = new();
             tactrepo.Create("wow", Locale.US, uint.Parse(buildId));
 
             // update the configs with the build and server info

@@ -11,7 +11,7 @@ namespace MPQToTACT
     public static class EncodingCache
     {
         private const string FileName = "encoding.cache";
-        private static readonly object objLock = new object();
+        private static readonly object objLock = new();
 
         private static readonly string FullPath = Path.Combine(Program.OutputFolder, FileName);
         private static EncodingFile Instance;

@@ -22,7 +22,7 @@ namespace MPQToTACT.Readers
         public readonly TACTRepo TACTRepo;
         public readonly ConcurrentDictionary<string, CASRecord> FileList;
 
-        private const StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
+        private const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
         private readonly Queue<string> _patchArchives;
         private readonly string _dataDirectory;
 
@@ -102,7 +102,7 @@ namespace MPQToTACT.Readers
 
             var block = new ActionBlock<string>(file =>
             {
-                int index = file.IndexOf(_dataDirectory, _comparison) + _dataDirectory.Length;
+                int index = file.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
                 string filename = file[index..].WoWNormalise();
 
                 var record = BlockTableEncoder.EncodeAndExport(file, Program.TempFolder, filename);
@@ -202,7 +202,7 @@ namespace MPQToTACT.Readers
         private bool TryReadAlpha(MpqArchive mpq, string archivename)
         {
             // strip the local path and extension to get the filename
-            int index = archivename.IndexOf(_dataDirectory, _comparison) + _dataDirectory.Length;
+            int index = archivename.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
             string file = Path.ChangeExtension(archivename[index..], null).WoWNormalise();
 
             if (FileList.ContainsKey(file))
@@ -240,7 +240,7 @@ namespace MPQToTACT.Readers
         /// <param name="mpq"></param>
         /// <param name="filteredlist"></param>
         /// <returns></returns>
-        private bool TryGetListFile(MpqArchive mpq, out List<string> filteredlist)
+        private static bool TryGetListFile(MpqArchive mpq, out List<string> filteredlist)
         {
             filteredlist = new List<string>();
 

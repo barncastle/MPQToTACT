@@ -130,7 +130,7 @@ namespace MPQToTACT.MPQ
 
         private void _OnCompact(IntPtr pvUserData, uint dwWorkType, ulong bytesProcessed, ulong totalBytes)
         {
-            MpqArchiveCompactingEventArgs args = new MpqArchiveCompactingEventArgs(dwWorkType, bytesProcessed, totalBytes);
+            MpqArchiveCompactingEventArgs args = new(dwWorkType, bytesProcessed, totalBytes);
             OnCompacting(args);
         }
 
@@ -204,7 +204,7 @@ namespace MPQToTACT.MPQ
             if (!NativeMethods.SFileOpenFileEx(_handle, fileName, 0, out MpqFileSafeHandle fileHandle))
                 throw new Win32Exception();
 
-            MpqFileStream fs = new MpqFileStream(fileHandle, _accessType, this);
+            MpqFileStream fs = new(fileHandle, _accessType, this);
             _openFiles.Add(fs);
             return fs;
         }

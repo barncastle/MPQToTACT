@@ -19,7 +19,7 @@ namespace MPQToTACT.Readers
         public readonly List<string> BaseArchives;
         public readonly List<string> PatchArchives;
 
-        private const StringComparison _comparison = StringComparison.OrdinalIgnoreCase;
+        private const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
 
         // excluded directories and file extensions
         private readonly string[] _excludeddirs = new[] { "screenshots", "logs", "errors", "wdb", "cache", "logs.client", "mapfiles" };
@@ -46,7 +46,7 @@ namespace MPQToTACT.Readers
         public IEnumerable<string> GetLooseDataFiles()
         {
             var localFiles = Directory.EnumerateFiles(BaseDirectory, "*", SearchOption.AllDirectories).ToList();
-            localFiles.RemoveAll(x => x.EndsWith(".mpq", _comparison) || !HasDirectory(x, "data"));
+            localFiles.RemoveAll(x => x.EndsWith(".mpq", Comparison) || !HasDirectory(x, "data"));
             localFiles.TrimExcess();
             return localFiles;
         }
@@ -63,7 +63,7 @@ namespace MPQToTACT.Readers
             var block = new ActionBlock<string>(file =>
             {
                 // strip the local path and normalise
-                var name = file[(file.IndexOf(BaseDirectory, _comparison) + BaseDirectory.Length)..].WoWNormalise();
+                var name = file[(file.IndexOf(BaseDirectory, Comparison) + BaseDirectory.Length)..].WoWNormalise();
 
                 // block table encode and export to the temp folder
                 // then add appropiate tags
@@ -81,7 +81,7 @@ namespace MPQToTACT.Readers
 
             // get local files excluding archives and temp data dirs           
             var localFiles = Directory.EnumerateFiles(BaseDirectory, "*", SearchOption.AllDirectories).ToList();
-            localFiles.RemoveAll(x => x.EndsWith(".mpq", _comparison) || HasDirectory(x, _excludeddirs) || HasExtension(x, _excludedexts));
+            localFiles.RemoveAll(x => x.EndsWith(".mpq", Comparison) || HasDirectory(x, _excludeddirs) || HasExtension(x, _excludedexts));
             localFiles.TrimExcess();
 
             // BLT encode everything
@@ -119,14 +119,14 @@ namespace MPQToTACT.Readers
                 string filename = Path.GetFileName(file);
 
                 // skip installation tomes and backups
-                if (filename.Contains("tome", _comparison) || 
-                    filename.Contains("backup", _comparison))
+                if (filename.Contains("tome", Comparison) || 
+                    filename.Contains("backup", Comparison))
                     continue;
 
                 // filter into the right collection
-                if (filename.StartsWith("wow-update", _comparison))
+                if (filename.StartsWith("wow-update", Comparison))
                     PatchArchives.Add(file);
-                else if (filename.StartsWith("base", _comparison))
+                else if (filename.StartsWith("base", Comparison))
                     BaseArchives.Add(file);
                 else
                     DataArchives.Add(file);
@@ -142,7 +142,7 @@ namespace MPQToTACT.Readers
             DataArchives.Sort(MPQSorter.Sort);
         }
 
-        private bool HasDirectory(string path, params string[] directories)
+        private static bool HasDirectory(string path, params string[] directories)
         {
             foreach (var directory in directories)
                 if (path.Split(Path.DirectorySeparatorChar).Any(x => x.Equals(directory, StringComparison.OrdinalIgnoreCase)))
@@ -151,7 +151,7 @@ namespace MPQToTACT.Readers
             return false;
         }
 
-        private bool HasExtension(string path, params string[] extensions)
+        private static bool HasExtension(string path, params string[] extensions)
         {
             string ext = Path.GetExtension(path) ?? "";
             return extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
