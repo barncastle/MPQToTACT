@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using MPQToTACT.Helpers;
+using MPQToTACT.ListFiles;
 using MPQToTACT.Readers;
 using TACT.Net;
 using TACT.Net.Install;
@@ -101,7 +102,7 @@ namespace MPQToTACT
             // set root variables
             tactrepo.RootFile.LocaleFlags = LocaleFlags.enUS;
             tactrepo.RootFile.ContentFlags = ContentFlags.None;
-            tactrepo.RootFile.FileLookup = new ListFileLookup();
+            tactrepo.RootFile.FileLookup = new PooledListFile();
             tactrepo.RootFile.AddBlock(LocaleFlags.All_WoW, ContentFlags.None);
 
             return tactrepo;
