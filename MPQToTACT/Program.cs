@@ -56,30 +56,24 @@ namespace MPQToTACT
         private static TACTRepo CreateRepo(string buildName)
         {
             // validate that the build name is blizz-like and extract the build info
-            var match = Regex.Match(buildName, @"wow-(\d{4,6})patch(\d\.\d{1,2}\.\d{1,2})_(retail|ptr|beta|alpha)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            var match = Regex.Match(buildName, @"wow-(\d{4,6})patch(\d\.\d{1,2}\.\d{1,2})_(retail|ptr|beta|alpha)", RegexOptions.IgnoreCase);
             if (!match.Success)
                 throw new ArgumentException("Invalid buildname format. Example: 'WOW-18125patch6.0.1_Beta'");
 
             Log.WriteLine($"Creating Repo for {buildName}");
 
-            string versionName = match.Groups[2].Value + "." + match.Groups[1].Value;
-            string buildId = match.Groups[1].Value;
-            string branch = match.Groups[3].Value;
+            var versionName = match.Groups[2].Value + "." + match.Groups[1].Value;
+            var buildId = match.Groups[1].Value;
+            var branch = match.Groups[3].Value;
 
             // calculate the build uid
-            string buildUID = "wow";
-            switch (branch.ToLower())
+            var buildUID = branch.ToLower() switch
             {
-                case "ptr":
-                    buildUID = "wowt";
-                    break;
-                case "beta":
-                    buildUID = "wow_beta";
-                    break;
-                case "alpha":
-                    buildUID = "wow_alpha";
-                    break;
-            }
+                "ptr" => "wowt",
+                "beta" => "wow_beta",
+                "alpha" => "wow_alpha",
+                _ => "wow",
+            };
 
             // open a new tact instance
             TACTRepo tactrepo = new();
@@ -102,7 +96,7 @@ namespace MPQToTACT
             {
                 tactrepo.ConfigContainer.CDNConfig.AddValue("archives", Path.GetFileNameWithoutExtension(index));
                 tactrepo.ConfigContainer.CDNConfig.AddValue("archives-index-size", new FileInfo(index).Length.ToString());
-            }            
+            }
 
             // set root variables
             tactrepo.RootFile.LocaleFlags = LocaleFlags.enUS;
@@ -166,8 +160,8 @@ namespace MPQToTACT
         /// <param name="output"></param>
         private static void Clean()
         {
-            DeleteDirectory(Program.TempFolder);
-            Directory.CreateDirectory(Program.TempFolder);
+            DeleteDirectory(TempFolder);
+            Directory.CreateDirectory(TempFolder);
         }
 
         private static void DeleteDirectory(string path)
@@ -184,6 +178,7 @@ namespace MPQToTACT
             catch (Exception ex)
             when (ex is IOException || ex is UnauthorizedAccessException)
             {
+                // handling of windows bug for deletion of large folders
                 System.Threading.Thread.Sleep(50);
                 Directory.Delete(path, true);
             }

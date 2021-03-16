@@ -40,7 +40,7 @@ namespace MPQToTACT
             // load Id-Name map
             foreach (var file in File.ReadAllLines(ListFilePath))
             {
-                int commaIndex = file.IndexOf(';');
+                var commaIndex = file.IndexOf(';');
                 if (commaIndex == -1)
                     continue;
 
@@ -75,7 +75,7 @@ namespace MPQToTACT
         public uint GetOrCreateFileId(string filename)
         {
             // check the filename exists
-            if (!_fileLookup.TryGetValue(filename, out uint id))
+            if (!_fileLookup.TryGetValue(filename, out var id))
             {
                 // attempt to take an id from the pool
                 if (_unusedIds.Count > 0)

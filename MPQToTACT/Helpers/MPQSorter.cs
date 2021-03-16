@@ -45,15 +45,15 @@ namespace MPQToTACT.Helpers
             if (archive2.Name[archive2.PatchIndex + 5] == '.' || archive2.PatchNum.Length == 0)
                 archive2.PatchNum = "0.mpq";
 
-            bool isLocalePatch1 = !char.IsDigit(archive1.PatchNum[0]);
-            bool isLocalePatch2 = !char.IsDigit(archive2.PatchNum[0]);
+            var isLocalePatch1 = !char.IsDigit(archive1.PatchNum[0]);
+            var isLocalePatch2 = !char.IsDigit(archive2.PatchNum[0]);
             if (isLocalePatch1 != isLocalePatch2)
                 return isLocalePatch1 ? 1 : -1;
 
             if (isLocalePatch1)
             {
-                bool hasNum1 = archive1.ExtIndex >= 1 && char.IsDigit(archive1.Name[archive1.ExtIndex - 1]);
-                bool hasNum2 = archive2.ExtIndex >= 1 && char.IsDigit(archive2.Name[archive2.ExtIndex - 1]);
+                var hasNum1 = archive1.ExtIndex >= 1 && char.IsDigit(archive1.Name[archive1.ExtIndex - 1]);
+                var hasNum2 = archive2.ExtIndex >= 1 && char.IsDigit(archive2.Name[archive2.ExtIndex - 1]);
                 if (hasNum1 != hasNum2)
                     return hasNum1 ? -1 : 1;
             }

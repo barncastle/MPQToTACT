@@ -15,7 +15,7 @@ namespace MPQToTACT.MPQ
         private MpqArchiveSafeHandle _handle;
         private ConcurrentSet<MpqFileStream> _openFiles;
         private readonly FileAccess _accessType;
-        private ConcurrentSet<MpqArchiveCompactingEventHandler> _compactCallbacks;
+        private readonly ConcurrentSet<MpqArchiveCompactingEventHandler> _compactCallbacks;
         private SFILE_COMPACT_CALLBACK _compactCallback;
 
         #region Constructors / Factories
@@ -31,7 +31,7 @@ namespace MPQToTACT.MPQ
             FilePath = filePath;
 
             _accessType = accessType;
-            SFileOpenArchiveFlags flags = SFileOpenArchiveFlags.TypeIsFile;
+            var flags = SFileOpenArchiveFlags.TypeIsFile;
             if (accessType == FileAccess.Read)
                 flags |= SFileOpenArchiveFlags.AccessReadOnly;
             else
@@ -42,12 +42,14 @@ namespace MPQToTACT.MPQ
                 throw new Win32Exception(); // Implicitly calls GetLastError
         }
 
+#pragma warning disable IDE0060 // Remove unused parameter
         private MpqArchive(string filePath, MpqArchiveVersion version, MpqFileStreamAttributes listfileAttributes, MpqFileStreamAttributes attributesFileAttributes, int maxFileCount) : this()
+#pragma warning restore IDE0060 // Remove unused parameter
         {
             if (maxFileCount < 0)
-                throw new ArgumentException("maxFileCount");
+                throw new ArgumentException(null, nameof(maxFileCount));
 
-            SFileOpenArchiveFlags flags = SFileOpenArchiveFlags.TypeIsFile | SFileOpenArchiveFlags.AccessReadWriteShare;
+            var flags = SFileOpenArchiveFlags.TypeIsFile | SFileOpenArchiveFlags.AccessReadWriteShare;
             flags |= (SFileOpenArchiveFlags)version;
 
             if (!NativeMethods.SFileCreateArchive(filePath, (uint)flags, int.MaxValue, out _handle))
@@ -76,7 +78,7 @@ namespace MPQToTACT.MPQ
             set
             {
                 if (value < 0 || value > uint.MaxValue)
-                    throw new ArgumentException("value");
+                    throw new ArgumentException(null, nameof(value));
                 VerifyHandle();
 
                 if (!NativeMethods.SFileSetMaxFileCount(_handle, unchecked((uint)value)))
@@ -182,7 +184,7 @@ namespace MPQToTACT.MPQ
 
             VerifyHandle();
 
-            foreach (string path in patchPaths)
+            foreach (var path in patchPaths)
             {
                 // Don't sublet to AddPatchArchive to avoid having to repeatedly call VerifyHandle()
                 if (!NativeMethods.SFileOpenPatchArchive(_handle, path, null, 0))
@@ -201,7 +203,7 @@ namespace MPQToTACT.MPQ
         {
             VerifyHandle();
 
-            if (!NativeMethods.SFileOpenFileEx(_handle, fileName, 0, out MpqFileSafeHandle fileHandle))
+            if (!NativeMethods.SFileOpenFileEx(_handle, fileName, 0, out var fileHandle))
                 throw new Win32Exception();
 
             MpqFileStream fs = new(fileHandle, _accessType, this);
@@ -236,6 +238,7 @@ namespace MPQToTACT.MPQ
         public void Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         ~MpqArchive()
@@ -250,7 +253,7 @@ namespace MPQToTACT.MPQ
                 // Release owned files first.
                 if (_openFiles != null)
                 {
-                    foreach (MpqFileStream of in _openFiles)
+                    foreach (var of in _openFiles)
                         of.Dispose();
 
                     _openFiles.Clear();

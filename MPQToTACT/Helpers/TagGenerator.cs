@@ -73,27 +73,25 @@ namespace MPQToTACT.Helpers
             if (filename.Contains(".so.", StringComparison.OrdinalIgnoreCase))
                 return LinuxTags;
 
-            switch (Path.GetExtension(filename).ToLowerInvariant())
-            {
-                case ".so":
-                    return LinuxTags;
-                case ".pak":
-                    return WinTags;
-                case ".dll":
-                case ".exe":
-                case "":
-                case null:
-                    {
-                        // x64 shortcut
-                        if (filename.Contains("-64.", StringComparison.OrdinalIgnoreCase))
-                            return Win64Tags;
+            var ext = Path.GetExtension(filename).ToLowerInvariant();
 
-                        using var fs = filestream ?? File.OpenRead(filename);
-                        return GetTagsFromBinary(fs);
-                    }                
-                default:
-                    return null; // use all tags
+            if (ext == ".so")
+                return LinuxTags;
+            if (ext == ".pak")
+                return WinTags;
+            if (ext == ".dylib")
+                return MacTags;
+
+            if (ext == ".dll" || ext == ".exe" || ext == "")
+            {
+                if (filename.Contains("-64.", StringComparison.OrdinalIgnoreCase))
+                    return Win64Tags;
+
+                using var fs = filestream ?? File.OpenRead(filename);
+                return GetTagsFromBinary(fs);
             }
+
+            return null; // use all tags
         }
 
         /// <summary>
@@ -101,15 +99,23 @@ namespace MPQToTACT.Helpers
         /// </summary>
         private static string[] GetTagsFromBinary(Stream fs)
         {
-            fs.Position = 0;
-
+            if (fs.Length < 4)
+                return null;
+            
             using var br = new BinaryReader(fs);
+            br.BaseStream.Position = 0;
 
             var magic = br.ReadUInt32();
 
-            // is linux - ELF or #!/b
+            // linux - ELF or #!/b
             if (magic == 0x464C457F || magic == 0x622F2123)
                 return LinuxTags;
+            // mac 32
+            if (magic == 0xFEEDFACE || magic == 0xCEFAEDFE)
+                return MacTags;
+            // mac 64
+            if (magic == 0xFEEDFACF || magic == 0xCFFAEDFE)
+                return MacTags;
             // is not windows - MZ
             if ((magic & 0xFFFF) != 0x5A4D)
                 return null;
@@ -117,7 +123,7 @@ namespace MPQToTACT.Helpers
             fs.Position = 60; // PE Header offset
             fs.Position = br.ReadUInt32() + 4; // machine offset
 
-            return (br.ReadUInt16()) switch // machine
+            return br.ReadUInt16() switch // machine
             {
                 0x8664 => Win64Tags, // x64
                 0x200 => Win64Tags, // IA64

@@ -116,10 +116,10 @@ namespace MPQToTACT.Readers
 
             foreach (var file in files)
             {
-                string filename = Path.GetFileName(file);
+                var filename = Path.GetFileName(file);
 
                 // skip installation tomes and backups
-                if (filename.Contains("tome", Comparison) || 
+                if (filename.Contains("tome", Comparison) ||
                     filename.Contains("backup", Comparison))
                     continue;
 
@@ -153,7 +153,7 @@ namespace MPQToTACT.Readers
 
         private static bool HasExtension(string path, params string[] extensions)
         {
-            string ext = Path.GetExtension(path) ?? "";
+            var ext = Path.GetExtension(path) ?? "";
             return extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
         }
 

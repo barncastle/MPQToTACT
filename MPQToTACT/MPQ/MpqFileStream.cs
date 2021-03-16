@@ -19,7 +19,7 @@ namespace MPQToTACT.MPQ
 
         internal unsafe MpqFileStream(MpqFileSafeHandle handle, FileAccess accessType, MpqArchive owner)
         {
-            _TMPQFileHeader* header = (_TMPQFileHeader*)handle.DangerousGetHandle().ToPointer();
+            var header = (_TMPQFileHeader*)handle.DangerousGetHandle().ToPointer();
 
             Flags = header->pFileEntry->dwFlags;
             FileName = Marshal.PtrToStringAnsi(header->pFileEntry->szFileName).WoWNormalise();
@@ -60,7 +60,7 @@ namespace MPQToTACT.MPQ
                 if (IsVerifiedHandle())
                 {
                     uint high = 0;
-                    uint low = NativeMethods.SFileGetFileSize(_handle, ref high);
+                    var low = NativeMethods.SFileGetFileSize(_handle, ref high);
 
                     ulong val = (high << 32) | low;
                     return unchecked((long)val);
@@ -88,11 +88,11 @@ namespace MPQToTACT.MPQ
         public override unsafe int Read(byte[] buffer, int offset, int count)
         {
             if (buffer == null)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             if (offset > buffer.Length || (offset + count) > buffer.Length)
-                throw new ArgumentException();
+                throw new ArgumentException("offset > buffer.Length");
             if (count < 0)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             VerifyHandle();
 
@@ -115,8 +115,8 @@ namespace MPQToTACT.MPQ
         {
             VerifyHandle();
 
-            uint low = unchecked((uint)(offset & 0xffffffffu));
-            uint high = unchecked((uint)(offset >> 32));
+            var low = unchecked((uint)(offset & 0xffffffffu));
+            var high = unchecked((uint)(offset >> 32));
             return NativeMethods.SFileSetFilePointer(_handle, low, ref high, (uint)origin);
         }
 
@@ -130,11 +130,11 @@ namespace MPQToTACT.MPQ
             VerifyHandle();
 
             if (buffer == null)
-                throw new ArgumentNullException("buffer");
+                throw new ArgumentNullException(nameof(buffer));
             if (offset > buffer.Length || (offset + count) > buffer.Length)
-                throw new ArgumentException();
+                throw new ArgumentException("offset > buffer.Length");
             if (count < 0)
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
 
             VerifyHandle();
 

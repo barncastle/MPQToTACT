@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace MPQToTACT.MPQ.Native
 {
+#pragma warning disable CA2101 // Specify marshaling for P/Invoke string arguments
     internal static class NativeMethods
     {
         private const string STORMLIB = "stormlib.dll";
@@ -92,8 +93,8 @@ namespace MPQToTACT.MPQ.Native
             if (hFile.IsInvalid || hFile.IsClosed)
                 throw new InvalidOperationException();
 
-            IntPtr handle = hFile.DangerousGetHandle();
-            _TMPQFileHeader* header = (_TMPQFileHeader*)handle.ToPointer();
+            var handle = hFile.DangerousGetHandle();
+            var header = (_TMPQFileHeader*)handle.ToPointer();
             return header->dwFilePos;
         }
 
@@ -102,9 +103,9 @@ namespace MPQToTACT.MPQ.Native
             if (hFile.IsInvalid || hFile.IsClosed)
                 throw new InvalidOperationException();
 
-            IntPtr handle = hFile.DangerousGetHandle();
-            _TMPQFileHeader* header = (_TMPQFileHeader*)handle.ToPointer();
-            ulong time = header->pFileEntry->FileTime;
+            var handle = hFile.DangerousGetHandle();
+            var header = (_TMPQFileHeader*)handle.ToPointer();
+            var time = header->pFileEntry->FileTime;
 
             if (time == 0)
             {
@@ -121,16 +122,16 @@ namespace MPQToTACT.MPQ.Native
             if (hFile.IsInvalid || hFile.IsClosed)
                 throw new InvalidOperationException();
 
-            IntPtr handle = hFile.DangerousGetHandle();
-            _TMPQFileHeader* header = (_TMPQFileHeader*)handle.ToPointer();
+            var handle = hFile.DangerousGetHandle();
+            var header = (_TMPQFileHeader*)handle.ToPointer();
 
-            byte* md5 = header->pFileEntry->md5;
-            char[] chars = new char[32];
+            var md5 = header->pFileEntry->md5;
+            var chars = new char[32];
 
             fixed (char* c = chars)
             {
                 int b;
-                for (int i = 0; i < 16; i++)
+                for (var i = 0; i < 16; i++)
                 {
                     b = md5[i] >> 4;
                     c[i * 2] = (char)(55 + b + (((b - 10) >> 31) & -7));
@@ -271,7 +272,7 @@ namespace MPQToTACT.MPQ.Native
         #endregion
     }
 
-#pragma warning disable 0169, 0649, IDE0044
+#pragma warning disable 0169, 0649, IDE0044, IDE0051
     internal struct SFILE_CREATE_MPQ
     {
         public uint cbSize;

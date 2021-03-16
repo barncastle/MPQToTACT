@@ -18,11 +18,11 @@ namespace MPQToTACT.Readers
     internal class MPQReader
     {
         const string LISTFILE_NAME = "(listfile)";
+        const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
 
         public readonly TACTRepo TACTRepo;
         public readonly ConcurrentDictionary<string, CASRecord> FileList;
 
-        private const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
         private readonly Queue<string> _patchArchives;
         private readonly string _dataDirectory;
 
@@ -55,7 +55,11 @@ namespace MPQToTACT.Readers
                     mpq.AddPatchArchives(_patchArchives);
                     ExportFiles(mpq, files, applyTags).Wait();
                 }
-                else if (!TryReadAlpha(mpq, archivename))
+                else if(TryReadAlpha(mpq, archivename))
+                {
+                    continue;
+                }
+                else
                 {
                     throw new FormatException(Path.GetFileName(archivename) + " HAS NO LISTFILE!");
                 }
@@ -102,8 +106,8 @@ namespace MPQToTACT.Readers
 
             var block = new ActionBlock<string>(file =>
             {
-                int index = file.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
-                string filename = file[index..].WoWNormalise();
+                var index = file.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
+                var filename = file[index..].WoWNormalise();
 
                 var record = BlockTableEncoder.EncodeAndExport(file, Program.TempFolder, filename);
                 record.Tags = TagGenerator.GetTags(file);
@@ -202,14 +206,14 @@ namespace MPQToTACT.Readers
         private bool TryReadAlpha(MpqArchive mpq, string archivename)
         {
             // strip the local path and extension to get the filename
-            int index = archivename.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
-            string file = Path.ChangeExtension(archivename[index..], null).WoWNormalise();
+            var index = archivename.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
+            var file = Path.ChangeExtension(archivename[index..], null).WoWNormalise();
 
             if (FileList.ContainsKey(file))
                 return true;
 
             // add the filename as the listfile
-            string internalname = Path.GetFileName(file);
+            var internalname = Path.GetFileName(file);
             mpq.AddListFile(internalname);
 
             // read file if known
