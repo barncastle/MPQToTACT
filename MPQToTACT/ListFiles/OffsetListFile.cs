@@ -8,10 +8,10 @@ using MPQToTACT.Helpers;
 namespace MPQToTACT.ListFiles
 {
     /// <summary>
-    /// This file lookup uses a base value as the minium filedata id.
+    /// This file lookup uses a base value as the minimum filedata id. If this is below the current `listfile.csv` max value, then that is used.
     /// </summary>
     /// <remarks>
-    /// The idea is to offset the offical Blizzard Ids with a large number so we can differentiate office from unoffical.<br/>
+    /// The idea is to offset the offical Blizzard Ids with a large number so we can differentiate offical from unoffical.<br/>
     /// FYI new filenames are allocated in alphabetical order by MPQReader to give some semblance of logic and conformity
     /// </remarks>
     class OffsetListFile : BaseListFileLookup
