@@ -21,10 +21,6 @@ namespace MPQToTACT.Readers
 
         private const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
 
-        // excluded directories and file extensions
-        private readonly string[] _excludeddirs = new[] { "screenshots", "logs", "errors", "wdb", "cache", "logs.client", "mapfiles" };
-        private readonly string[] _excludedexts = new[] { ".h", ".idb", ".i64", ".lnk", ".ses", ".log", ".pdb", ".wtf" };
-
         public DirectoryReader(string directory, TACTRepo tactrepo)
         {
             DataArchives = new List<string>(0x100);
@@ -67,7 +63,7 @@ namespace MPQToTACT.Readers
 
                 // block table encode and export to the temp folder
                 // then add appropiate tags
-                var record = BlockTableEncoder.EncodeAndExport(file, Program.TempFolder, name);
+                var record = BlockTableEncoder.EncodeAndExport(file, Settings.TempDirectory, name);
                 record.Tags = TagGenerator.GetTags(file);
 
                 if (!EncodingCache.ContainsEKey(record.EKey))
@@ -79,9 +75,9 @@ namespace MPQToTACT.Readers
             },
             new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxDegreeOfParallelism });
 
-            // get local files excluding archives and temp data dirs           
+            // get local files minus exclusions          
             var localFiles = Directory.EnumerateFiles(BaseDirectory, "*", SearchOption.AllDirectories).ToList();
-            localFiles.RemoveAll(x => x.EndsWith(".mpq", Comparison) || HasDirectory(x, _excludeddirs) || HasExtension(x, _excludedexts));
+            localFiles.RemoveAll(x => HasDirectory(x, Settings.ExcludedDirectories) || HasExtension(x, Settings.ExcludedExtensions));
             localFiles.TrimExcess();
 
             // BLT encode everything

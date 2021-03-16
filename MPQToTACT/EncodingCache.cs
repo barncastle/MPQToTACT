@@ -26,7 +26,7 @@ namespace MPQToTACT
 
         public static void Save()
         {
-            Instance.Write(Program.TempFolder);
+            Instance.Write(Settings.TempDirectory);
             File.Copy(Instance.FilePath, FullPath, true);
             File.Copy(Instance.FilePath, Path.Combine(Program.OutputFolder, Program.BuildName, FileName), true);
         }

@@ -16,7 +16,6 @@ namespace MPQToTACT
         public const string WoWDirectory = @"E:\Clients\World of Warcraft 0.5.5.3494 Alpha";
         public const string BuildName = "WOW-3494patch0.5.5_alpha";
         public const string OutputFolder = @"D:\TACT\UwAmp\www";
-        public const string TempFolder = "temp";
 
         static void Main()
         {
@@ -161,8 +160,8 @@ namespace MPQToTACT
         /// <param name="output"></param>
         private static void Clean()
         {
-            DeleteDirectory(TempFolder);
-            Directory.CreateDirectory(TempFolder);
+            DeleteDirectory(Settings.TempDirectory);
+            Directory.CreateDirectory(Settings.TempDirectory);
         }
 
         private static void DeleteDirectory(string path)

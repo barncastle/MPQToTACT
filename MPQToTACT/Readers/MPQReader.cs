@@ -109,7 +109,7 @@ namespace MPQToTACT.Readers
                 var index = file.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
                 var filename = file[index..].WoWNormalise();
 
-                var record = BlockTableEncoder.EncodeAndExport(file, Program.TempFolder, filename);
+                var record = BlockTableEncoder.EncodeAndExport(file, Settings.TempDirectory, filename);
                 record.Tags = TagGenerator.GetTags(file);
 
                 if (!EncodingCache.ContainsEKey(record.EKey))
@@ -177,7 +177,7 @@ namespace MPQToTACT.Readers
 
                     if (!EncodingCache.TryGetRecord(MD5Hash.Parse(fs.GetMD5Hash()), file, out var record))
                     {
-                        record = BlockTableEncoder.EncodeAndExport(fs, map, Program.TempFolder, file);
+                        record = BlockTableEncoder.EncodeAndExport(fs, map, Settings.TempDirectory, file);
                         EncodingCache.AddOrUpdate(record);
                     }
 
@@ -225,7 +225,7 @@ namespace MPQToTACT.Readers
                     var map = BlockTableEncoder.GetEMapFromExtension(file, fs.Length);
                     if (!EncodingCache.TryGetRecord(MD5Hash.Parse(fs.GetMD5Hash()), file, out var record))
                     {
-                        record = BlockTableEncoder.EncodeAndExport(fs, map, Program.TempFolder, file);
+                        record = BlockTableEncoder.EncodeAndExport(fs, map, Settings.TempDirectory, file);
                         EncodingCache.AddOrUpdate(record);
                     }
 

@@ -1,0 +1,23 @@
+{
+  "excludedDirectories": [
+    "screenshots",
+    "logs",
+    "errors",
+    "wdb",
+    "cache",
+    "logs.client",
+    "mapfiles"
+  ],
+  "excludedExtensions": [
+    ".mpq", // DND
+    ".h",
+    ".idb",
+    ".i64",
+    ".lnk",
+    ".ses",
+    ".log",
+    ".pdb",
+    ".wtf"
+  ],
+  "tempDirectory": "temp"
+}
