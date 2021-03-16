@@ -12,23 +12,25 @@ namespace MPQToTACT.Readers
 {
     internal class DirectoryReader
     {
+        private const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
+
         public readonly string BaseDirectory;
+        public readonly Options Options;
         public readonly TACTRepo TACTRepo;
 
         public readonly List<string> DataArchives;
         public readonly List<string> BaseArchives;
         public readonly List<string> PatchArchives;
 
-        private const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
-
-        public DirectoryReader(string directory, TACTRepo tactrepo)
+        public DirectoryReader(Options options, TACTRepo tactrepo)
         {
             DataArchives = new List<string>(0x100);
             BaseArchives = new List<string>(0x40);
             PatchArchives = new List<string>(0x40);
 
-            BaseDirectory = directory;
+            Options = options;
             TACTRepo = tactrepo;
+            BaseDirectory = options.WoWDirectory;
 
             PopulateCollections();
         }
@@ -63,7 +65,7 @@ namespace MPQToTACT.Readers
 
                 // block table encode and export to the temp folder
                 // then add appropiate tags
-                var record = BlockTableEncoder.EncodeAndExport(file, Settings.TempDirectory, name);
+                var record = BlockTableEncoder.EncodeAndExport(file, Options.TempDirectory, name);
                 record.Tags = TagGenerator.GetTags(file);
 
                 if (!EncodingCache.ContainsEKey(record.EKey))
@@ -77,7 +79,7 @@ namespace MPQToTACT.Readers
 
             // get local files minus exclusions          
             var localFiles = Directory.EnumerateFiles(BaseDirectory, "*", SearchOption.AllDirectories).ToList();
-            localFiles.RemoveAll(x => HasDirectory(x, Settings.ExcludedDirectories) || HasExtension(x, Settings.ExcludedExtensions));
+            localFiles.RemoveAll(RemoveExclusions);
             localFiles.TrimExcess();
 
             // BLT encode everything
@@ -138,13 +140,18 @@ namespace MPQToTACT.Readers
             DataArchives.Sort(MPQSorter.Sort);
         }
 
+        private bool RemoveExclusions(string value)
+        {
+            return HasDirectory(value, Options.ExcludedDirectories) ||
+                   HasExtension(value, Options.ExcludedExtensions);
+        }
+
         private static bool HasDirectory(string path, params string[] directories)
         {
-            foreach (var directory in directories)
-                if (path.Split(Path.DirectorySeparatorChar).Any(x => x.Equals(directory, StringComparison.OrdinalIgnoreCase)))
-                    return true;
-
-            return false;
+            return path
+                .Split(Path.DirectorySeparatorChar)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                .Overlaps(directories);
         }
 
         private static bool HasExtension(string path, params string[] extensions)

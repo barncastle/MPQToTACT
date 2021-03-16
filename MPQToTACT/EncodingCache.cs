@@ -1,23 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+﻿using System.IO;
 using TACT.Net;
 using TACT.Net.Cryptography;
 using TACT.Net.Encoding;
 
 namespace MPQToTACT
 {
-    public static class EncodingCache
+    /// <summary>
+    /// This is a custom Encoding File that is used globally to cache all files being passed
+    /// through. This file should only be deleted if you are not producing an incremental CDN
+    /// </summary>
+    static class EncodingCache
     {
         private const string FileName = "encoding.cache";
         private static readonly object objLock = new();
 
-        private static readonly string FullPath = Path.Combine(Program.OutputFolder, FileName);
+        private static Options Options;
+        private static string FullPath;
         private static EncodingFile Instance;
 
-        public static void Initialise()
+        public static void Initialise(Options options)
         {
+            Options = options;
+            FullPath = Path.Combine(options.OutputFolder, FileName);
+
             if (File.Exists(FullPath))
                 Instance = new EncodingFile(FullPath);
             else
@@ -26,9 +31,12 @@ namespace MPQToTACT
 
         public static void Save()
         {
-            Instance.Write(Settings.TempDirectory);
+            // save the encoding file and clone it to both
+            // the output directory and the build specific directory
+            // the latter can be used as a restore point
+            Instance.Write(Options.TempDirectory);
             File.Copy(Instance.FilePath, FullPath, true);
-            File.Copy(Instance.FilePath, Path.Combine(Program.OutputFolder, Program.BuildName, FileName), true);
+            File.Copy(Instance.FilePath, Path.Combine(Options.OutputFolder, Options.BuildName, FileName), true);
         }
 
         public static void AddOrUpdate(CASRecord record)
@@ -38,6 +46,7 @@ namespace MPQToTACT
         }
 
         public static bool ContainsCKey(MD5Hash ckey) => Instance.ContainsCKey(ckey);
+
         public static bool ContainsEKey(MD5Hash ekey) => Instance.ContainsEKey(ekey);
 
         public static bool TryGetRecord(MD5Hash ckey, string file, out CASRecord record)

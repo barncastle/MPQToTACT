@@ -1,36 +1,48 @@
 ﻿using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using CommandLine;
 using MPQToTACT.Helpers;
 using MPQToTACT.ListFiles;
 using MPQToTACT.Readers;
 using TACT.Net;
 using TACT.Net.Install;
 using TACT.Net.Root;
-using TACT.Net.Tags;
 
 namespace MPQToTACT
 {
     class Program
     {
-        public const string WoWDirectory = @"E:\Clients\World of Warcraft 0.5.5.3494 Alpha";
-        public const string BuildName = "WOW-3494patch0.5.5_alpha";
-        public const string OutputFolder = @"D:\TACT\UwAmp\www";
-
-        static void Main()
+        static void Main(string[] args)
         {
-            Clean();
+            using var parser = new Parser(s =>
+            {
+                s.HelpWriter = Console.Error;
+                s.CaseInsensitiveEnumValues = true;
+                s.AutoVersion = false;
+            });
 
-            EncodingCache.Initialise();
+            var result = parser.ParseArguments<Options>(args);
+            if (result.Tag == ParserResultType.Parsed)
+                result.WithParsed(Run);
+        }
+
+        private static void Run(Options options)
+        {       
+            Clean(options);
+
+            options.LoadConfig();
+
+            EncodingCache.Initialise(options);
 
             // create the repo
-            var tactRepo = CreateRepo(BuildName);
+            var tactRepo = CreateRepo(options);
             // load the the Install/Download tag lookups
             TagGenerator.Load(tactRepo);
 
             // load the readers
-            var dirReader = new DirectoryReader(WoWDirectory, tactRepo);
-            var mpqReader = new MPQReader(dirReader.PatchArchives, tactRepo);
+            var dirReader = new DirectoryReader(options, tactRepo);
+            var mpqReader = new MPQReader(options, tactRepo, dirReader.PatchArchives);
 
             // populate the Install and Root files
             PopulateInstallFile(tactRepo, dirReader, mpqReader);
@@ -38,12 +50,12 @@ namespace MPQToTACT
 
             // build and save the repo
             Log.WriteLine("Building and Saving repo");
-            tactRepo.Save(OutputFolder, Path.Combine(OutputFolder, BuildName));
+            tactRepo.Save(options.OutputFolder, Path.Combine(options.OutputFolder, options.BuildName));
 
             EncodingCache.Save();
 
             // cleanup
-            Clean();
+            Clean(options);
         }
 
         #region Methods
@@ -53,14 +65,14 @@ namespace MPQToTACT
         /// </summary>
         /// <param name="buildName"></param>
         /// <returns></returns>
-        private static TACTRepo CreateRepo(string buildName)
+        private static TACTRepo CreateRepo(Options options)
         {
             // validate that the build name is blizz-like and extract the build info
-            var match = Regex.Match(buildName, @"wow-(\d{4,6})patch(\d\.\d{1,2}\.\d{1,2})_(retail|ptr|beta|alpha)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(options.BuildName, @"wow-(\d{4,6})patch(\d\.\d{1,2}\.\d{1,2})_(retail|ptr|beta|alpha)", RegexOptions.IgnoreCase);
             if (!match.Success)
                 throw new ArgumentException("Invalid buildname format. Example: 'WOW-18125patch6.0.1_Beta'");
 
-            Log.WriteLine($"Creating Repo for {buildName}");
+            Log.WriteLine($"Creating Repo for {options.BuildName}");
 
             var versionName = match.Groups[2].Value + "." + match.Groups[1].Value;
             var buildId = match.Groups[1].Value;
@@ -83,7 +95,7 @@ namespace MPQToTACT
             // - CDNs file is probably not necessary for this use case
             tactrepo.ManifestContainer.VersionsFile.SetValue("BuildId", buildId);
             tactrepo.ManifestContainer.VersionsFile.SetValue("VersionsName", versionName);
-            tactrepo.ConfigContainer.BuildConfig.SetValue("Build-Name", buildName, 0);
+            tactrepo.ConfigContainer.BuildConfig.SetValue("Build-Name", options.BuildName, 0);
             tactrepo.ConfigContainer.BuildConfig.SetValue("Build-UID", buildUID, 0);
             tactrepo.ConfigContainer.BuildConfig.SetValue("Build-Product", "WoW", 0);
             tactrepo.ManifestContainer.CDNsFile.SetValue("Hosts", "localhost");
@@ -91,8 +103,8 @@ namespace MPQToTACT
             tactrepo.ManifestContainer.CDNsFile.SetValue("Path", "");
 
             // load and append existing indices
-            tactrepo.IndexContainer.Open(OutputFolder);
-            foreach (var index in Directory.GetFiles(OutputFolder, "*.index", SearchOption.AllDirectories))
+            tactrepo.IndexContainer.Open(options.OutputFolder);
+            foreach (var index in Directory.GetFiles(options.OutputFolder, "*.index", SearchOption.AllDirectories))
             {
                 tactrepo.ConfigContainer.CDNConfig.AddValue("archives", Path.GetFileNameWithoutExtension(index));
                 tactrepo.ConfigContainer.CDNConfig.AddValue("archives-index-size", new FileInfo(index).Length.ToString());
@@ -158,10 +170,10 @@ namespace MPQToTACT
         /// Deleted all files from the temp and output directories
         /// </summary>
         /// <param name="output"></param>
-        private static void Clean()
+        private static void Clean(Options options)
         {
-            DeleteDirectory(Settings.TempDirectory);
-            Directory.CreateDirectory(Settings.TempDirectory);
+            DeleteDirectory(options.TempDirectory);
+            Directory.CreateDirectory(options.TempDirectory);
         }
 
         private static void DeleteDirectory(string path)

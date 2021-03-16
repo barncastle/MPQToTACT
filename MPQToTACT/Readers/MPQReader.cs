@@ -17,23 +17,23 @@ namespace MPQToTACT.Readers
 {
     internal class MPQReader
     {
-        const string LISTFILE_NAME = "(listfile)";
-        const StringComparison Comparison = StringComparison.OrdinalIgnoreCase;
+        private const string LISTFILE_NAME = "(listfile)";
 
+        public readonly Options Options;
         public readonly TACTRepo TACTRepo;
         public readonly ConcurrentDictionary<string, CASRecord> FileList;
 
-        private readonly Queue<string> _patchArchives;
-        private readonly string _dataDirectory;
+        private readonly Queue<string> PatchArchives;
+        private readonly string DataDirectory;
 
-
-        public MPQReader(IEnumerable<string> patchArchives, TACTRepo tactrepo)
+        public MPQReader(Options options, TACTRepo tactrepo, IList<string> patchArchives)
         {
+            Options = options;
             TACTRepo = tactrepo;
             FileList = new ConcurrentDictionary<string, CASRecord>(StringComparer.OrdinalIgnoreCase);
 
-            _patchArchives = new Queue<string>(patchArchives);
-            _dataDirectory = Path.DirectorySeparatorChar + "DATA" + Path.DirectorySeparatorChar;
+            PatchArchives = new Queue<string>(patchArchives);
+            DataDirectory = Path.DirectorySeparatorChar + "DATA" + Path.DirectorySeparatorChar;
         }
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace MPQToTACT.Readers
 
                 if (TryGetListFile(mpq, out var files))
                 {
-                    mpq.AddPatchArchives(_patchArchives);
+                    mpq.AddPatchArchives(PatchArchives);
                     ExportFiles(mpq, files, applyTags).Wait();
                 }
-                else if(TryReadAlpha(mpq, archivename))
+                else if (TryReadAlpha(mpq, archivename))
                 {
                     continue;
                 }
@@ -71,25 +71,21 @@ namespace MPQToTACT.Readers
         /// </summary>
         public void EnumeratePatchArchives()
         {
-            if (_patchArchives.Count == 0)
+            if (PatchArchives.Count == 0)
                 return;
 
             Log.WriteLine("Exporting Patch Archive files");
 
-            while (_patchArchives.Count > 0)
+            while (PatchArchives.Count > 0)
             {
-                using var mpq = new MpqArchive(_patchArchives.Dequeue(), FileAccess.Read);
+                using var mpq = new MpqArchive(PatchArchives.Dequeue(), FileAccess.Read);
                 Log.WriteLine("    Exporting " + Path.GetFileName(mpq.FilePath));
 
-                if (TryGetListFile(mpq, out var files))
-                {
-                    mpq.AddPatchArchives(_patchArchives);
-                    ExportFiles(mpq, files).Wait();
-                }
-                else
-                {
+                if (!TryGetListFile(mpq, out var files))
                     throw new Exception(Path.GetFileName(mpq.FilePath) + " MISSING LISTFILE");
-                }
+
+                mpq.AddPatchArchives(PatchArchives);
+                ExportFiles(mpq, files).Wait();
             }
         }
 
@@ -106,10 +102,9 @@ namespace MPQToTACT.Readers
 
             var block = new ActionBlock<string>(file =>
             {
-                var index = file.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
-                var filename = file[index..].WoWNormalise();
+                var filename = GetInternalPath(file);
 
-                var record = BlockTableEncoder.EncodeAndExport(file, Settings.TempDirectory, filename);
+                var record = BlockTableEncoder.EncodeAndExport(file, Options.TempDirectory, filename);
                 record.Tags = TagGenerator.GetTags(file);
 
                 if (!EncodingCache.ContainsEKey(record.EKey))
@@ -136,20 +131,18 @@ namespace MPQToTACT.Readers
         public void Process<T>(Action<CASRecord> action) where T : ISystemFile
         {
             // set tag capacity
-            var type = typeof(T);
-            switch (true)
+            if (typeof(T) == typeof(InstallFile))
             {
-                case true when type == typeof(InstallFile):
-                    TACTRepo.InstallFile?.SetTagsCapacity(FileList.Count);
-                    break;
-                case true when type == typeof(RootFile):
-                    TACTRepo.DownloadFile?.SetTagsCapacity(FileList.Count);
-                    TACTRepo.DownloadSizeFile?.SetTagsCapacity(FileList.Count);
-                    break;
+                TACTRepo.InstallFile?.SetTagsCapacity(FileList.Count);
+            }
+            else if (typeof(T) == typeof(RootFile))
+            {
+                TACTRepo.DownloadFile?.SetTagsCapacity(FileList.Count);
+                TACTRepo.DownloadSizeFile?.SetTagsCapacity(FileList.Count);
             }
 
             foreach (var file in FileList.OrderBy(x => x.Key))
-                action.Invoke(file.Value);
+                action(file.Value);
         }
 
         #region Helpers
@@ -177,7 +170,7 @@ namespace MPQToTACT.Readers
 
                     if (!EncodingCache.TryGetRecord(MD5Hash.Parse(fs.GetMD5Hash()), file, out var record))
                     {
-                        record = BlockTableEncoder.EncodeAndExport(fs, map, Settings.TempDirectory, file);
+                        record = BlockTableEncoder.EncodeAndExport(fs, map, Options.TempDirectory, file);
                         EncodingCache.AddOrUpdate(record);
                     }
 
@@ -206,8 +199,7 @@ namespace MPQToTACT.Readers
         private bool TryReadAlpha(MpqArchive mpq, string archivename)
         {
             // strip the local path and extension to get the filename
-            var index = archivename.IndexOf(_dataDirectory, Comparison) + _dataDirectory.Length;
-            var file = Path.ChangeExtension(archivename[index..], null).WoWNormalise();
+            var file = Path.ChangeExtension(GetInternalPath(archivename), null).WoWNormalise();
 
             if (FileList.ContainsKey(file))
                 return true;
@@ -220,12 +212,14 @@ namespace MPQToTACT.Readers
             if (mpq.HasFile(internalname))
             {
                 using var fs = mpq.OpenFile(internalname);
+
                 if (fs.CanRead && fs.Length > 0)
                 {
                     var map = BlockTableEncoder.GetEMapFromExtension(file, fs.Length);
+
                     if (!EncodingCache.TryGetRecord(MD5Hash.Parse(fs.GetMD5Hash()), file, out var record))
                     {
-                        record = BlockTableEncoder.EncodeAndExport(fs, map, Settings.TempDirectory, file);
+                        record = BlockTableEncoder.EncodeAndExport(fs, map, Options.TempDirectory, file);
                         EncodingCache.AddOrUpdate(record);
                     }
 
@@ -261,13 +255,27 @@ namespace MPQToTACT.Readers
                 }
 
                 // remove the MPQ documentation files
-                filteredlist.RemoveAll(x => (x.StartsWith('(') && x.EndsWith(')')) || x.EndsWith("md5.lst") || x.StartsWith("component."));
+                filteredlist.RemoveAll(RemoveSpecialFiles);
                 filteredlist.TrimExcess();
 
                 return filteredlist.Count > 0;
             }
 
             return false;
+        }
+
+        private static bool RemoveSpecialFiles(string value)
+        {
+            return (value.StartsWith('(') && value.EndsWith(')')) ||
+                    value.EndsWith("md5.lst") ||
+                    value.StartsWith("component.");
+        }
+
+        private string GetInternalPath(string value)
+        {
+            var index = value.IndexOf(DataDirectory, StringComparison.OrdinalIgnoreCase);
+            index += DataDirectory.Length;
+            return value[index..].WoWNormalise();
         }
 
         #endregion
