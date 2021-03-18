@@ -24,6 +24,7 @@
     "enUS-hdfiles",
     "esES-hdfiles",
     "esMX-hdfiles",
+    "deDE-hdfiles",
     "zhTW",
     "zhCN",
     "ruRU",
@@ -37,7 +38,8 @@
     "enTW",
     "enUS",
     "esES",
-    "esMX"
+    "esMX",
+    "deDE"
   ],
   "excludedExtensions": [
     ".mpq", // DND
