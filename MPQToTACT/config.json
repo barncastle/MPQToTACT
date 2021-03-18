@@ -41,7 +41,8 @@
     "enUS",
     "esES",
     "esMX",
-    "deDE"
+    "deDE",
+    "CVS"
   ],
   "excludedExtensions": [
     ".mpq", // DND
