@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using TACT.Net.Common;
 
 namespace MPQToTACT.Helpers
 {
@@ -75,7 +76,7 @@ namespace MPQToTACT.Helpers
             {
                 Name = Path.GetFileName(archive).ToLowerInvariant();
 
-                IsAlpha = archive.ToLowerInvariant().Split(Path.DirectorySeparatorChar).Any(x => x == "world");
+                IsAlpha = archive.ToLowerInvariant().Split(Path.DirectorySeparatorChar).IndexOf("world") > -1;
                 IsLocale = Name.Contains("locale") || Name.Contains("speech") || Name.Contains("base");
                 IsPatch = Name.Contains("patch");
                 PatchIndex = Name.IndexOf("patch", StringComparison.Ordinal);
