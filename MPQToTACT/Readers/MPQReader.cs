@@ -54,10 +54,11 @@ namespace MPQToTACT.Readers
                 {
                     mpq.AddPatchArchives(PatchArchives);
                     ExportFiles(mpq, files, applyTags).Wait();
+                    mpq.Dispose();
                 }
                 else if (TryReadAlpha(mpq, archivename))
                 {
-                    continue;
+                    mpq.Dispose();
                 }
                 else
                 {
@@ -68,6 +69,7 @@ namespace MPQToTACT.Readers
 
         /// <summary>
         /// Iterates all the patch archives, extracting and BLT encoding all new files
+        /// NOTE: Looks like stormlib handles this automatically with AddPatchArchive(s)
         /// </summary>
         public void EnumeratePatchArchives()
         {
@@ -86,6 +88,7 @@ namespace MPQToTACT.Readers
 
                 mpq.AddPatchArchives(PatchArchives);
                 ExportFiles(mpq, files).Wait();
+                mpq.Dispose();
             }
         }
 
@@ -238,7 +241,7 @@ namespace MPQToTACT.Readers
         /// <param name="mpq"></param>
         /// <param name="filteredlist"></param>
         /// <returns></returns>
-        private static bool TryGetListFile(MpqArchive mpq, out List<string> filteredlist)
+        private bool TryGetListFile(MpqArchive mpq, out List<string> filteredlist)
         {
             filteredlist = new List<string>();
 
@@ -255,7 +258,7 @@ namespace MPQToTACT.Readers
                 }
 
                 // remove the MPQ documentation files
-                filteredlist.RemoveAll(RemoveSpecialFiles);
+                filteredlist.RemoveAll(RemoveUnwantedFiles);
                 filteredlist.TrimExcess();
 
                 return filteredlist.Count > 0;
@@ -264,11 +267,25 @@ namespace MPQToTACT.Readers
             return false;
         }
 
-        private static bool RemoveSpecialFiles(string value)
+        private bool RemoveUnwantedFiles(string value)
         {
-            return (value.StartsWith('(') && value.EndsWith(')')) ||
-                    value.EndsWith("md5.lst") ||
-                    value.StartsWith("component.");
+            value = value.ToLower();
+
+            return value.StartsWith('(') ||
+                value.StartsWith("component.") ||
+                (value.EndsWith(".lst") && !value.StartsWith("triallists")) || // NOTE this includes wotlk alpha temp lists!
+                HasDirectory(value) ||
+                HasExtension(value);
+        }
+
+        private bool HasDirectory(string path)
+        {
+            return Options.ExcludedDirectories.Overlaps(path.Split(Path.DirectorySeparatorChar));
+        }
+
+        private bool HasExtension(string path)
+        {
+            return Options.ExcludedExtensions.Contains(Path.GetExtension(path) ?? "");
         }
 
         private string GetInternalPath(string value)

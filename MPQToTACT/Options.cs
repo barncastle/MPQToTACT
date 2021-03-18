@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using CommandLine;
 using Microsoft.Extensions.Configuration;
 
@@ -18,9 +21,9 @@ namespace MPQToTACT
         [Option('t', "temp", HelpText = "Temporary directory used to extracted files")]
         public string TempDirectory { get; set; } = "temp";
 
-        public string[] ExcludedDirectories { get; set; }
+        public HashSet<string> ExcludedDirectories { get; set; }
 
-        public string[] ExcludedExtensions { get; set; }
+        public HashSet<string> ExcludedExtensions { get; set; }
 
         public void LoadConfig()
         {
@@ -29,8 +32,8 @@ namespace MPQToTACT
                 .AddJsonFile("config.json", optional: false)
                 .Build();
 
-            ExcludedDirectories = config.GetValue<string[]>("excludedDirectories");
-            ExcludedExtensions = config.GetValue<string[]>("excludedExtensions");
+            ExcludedDirectories = config.GetValue<string[]>("excludedDirectories").ToHashSet(StringComparer.OrdinalIgnoreCase);
+            ExcludedExtensions = config.GetValue<string[]>("excludedExtensions").ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
     }
 }

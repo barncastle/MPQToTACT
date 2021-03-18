@@ -44,7 +44,7 @@ namespace MPQToTACT.Readers
         public IEnumerable<string> GetLooseDataFiles()
         {
             var localFiles = Directory.EnumerateFiles(BaseDirectory, "*", SearchOption.AllDirectories).ToList();
-            localFiles.RemoveAll(x => x.EndsWith(".mpq", Comparison) || !HasDirectory(x, "data"));
+            localFiles.RemoveAll(x => x.EndsWith(".mpq", Comparison) || !x.Contains("\\data\\"));
             localFiles.TrimExcess();
             return localFiles;
         }
@@ -79,7 +79,7 @@ namespace MPQToTACT.Readers
 
             // get local files minus exclusions          
             var localFiles = Directory.EnumerateFiles(BaseDirectory, "*", SearchOption.AllDirectories).ToList();
-            localFiles.RemoveAll(RemoveExclusions);
+            localFiles.RemoveAll(x => HasDirectory(x) || HasExtension(x));
             localFiles.TrimExcess();
 
             // BLT encode everything
@@ -140,24 +140,14 @@ namespace MPQToTACT.Readers
             DataArchives.Sort(MPQSorter.Sort);
         }
 
-        private bool RemoveExclusions(string value)
+        private bool HasDirectory(string path)
         {
-            return HasDirectory(value, Options.ExcludedDirectories) ||
-                   HasExtension(value, Options.ExcludedExtensions);
+            return Options.ExcludedDirectories.Overlaps(path.Split(Path.DirectorySeparatorChar));
         }
 
-        private static bool HasDirectory(string path, params string[] directories)
+        private bool HasExtension(string path)
         {
-            return path
-                .Split(Path.DirectorySeparatorChar)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                .Overlaps(directories);
-        }
-
-        private static bool HasExtension(string path, params string[] extensions)
-        {
-            var ext = Path.GetExtension(path) ?? "";
-            return extensions.Contains(ext, StringComparer.OrdinalIgnoreCase);
+            return Options.ExcludedExtensions.Contains(Path.GetExtension(path) ?? "");
         }
 
         #endregion
