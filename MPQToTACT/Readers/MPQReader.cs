@@ -164,8 +164,15 @@ namespace MPQToTACT.Readers
                 using var fs = mpq.OpenFile(file);
 
                 // ignore PTCH files
-                if ((fs.Flags & 0x100000u) == 0x100000u)
+                if (fs.Flags.HasFlag(MPQFileAttributes.PatchFile))
                     return;
+
+                // patch has marked file for deletion so remove from filelist
+                if(fs.Flags.HasFlag(MPQFileAttributes.DeleteMarker))
+                {
+                    FileList.TryRemove(file, out _);
+                    return;
+                }
 
                 if (fs.CanRead && fs.Length > 0)
                 {
