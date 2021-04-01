@@ -22,9 +22,9 @@ namespace MPQToTACT
         [Option('t', "temp", HelpText = "Temporary directory used to extracted files")]
         public string TempDirectory { get; set; } = "temp";
 
-        public HashSet<string> ExcludedDirectories { get; set; }
+        public HashSet<string> ExcludedDirectories { get; private set; }
 
-        public HashSet<string> ExcludedExtensions { get; set; }
+        public HashSet<string> ExcludedExtensions { get; private set; }
 
         public void LoadConfig()
         {
