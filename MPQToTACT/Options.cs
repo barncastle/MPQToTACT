@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using CommandLine;
 using Microsoft.Extensions.Configuration;
+using MPQToTACT.Helpers;
 
 namespace MPQToTACT
 {
@@ -32,8 +33,8 @@ namespace MPQToTACT
                 .AddJsonFile("config.json", optional: false)
                 .Build();
 
-            ExcludedDirectories = config.GetValue<string[]>("excludedDirectories").ToHashSet(StringComparer.OrdinalIgnoreCase);
-            ExcludedExtensions = config.GetValue<string[]>("excludedExtensions").ToHashSet(StringComparer.OrdinalIgnoreCase);
+            ExcludedDirectories = config.GetValues<string>("excludedDirectories").ToHashSet(StringComparer.OrdinalIgnoreCase);
+            ExcludedExtensions = config.GetValues<string>("excludedExtensions").ToHashSet(StringComparer.OrdinalIgnoreCase);
         }
     }
 }
